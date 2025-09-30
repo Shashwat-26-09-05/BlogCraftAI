@@ -5,12 +5,10 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-import dj_database_url
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SITE_NAME = os.getenv("SITE_NAME", "BlogCraftAI")
-SITE_DOMAIN = os.getenv("SITE_DOMAIN", "https://blogcraftai.onrender.com")
+SITE_DOMAIN = os.getenv("SITE_DOMAIN", "127.0.0.1:8000")
 SITE_URL = os.getenv("SITE_URL", f"http://{SITE_DOMAIN}").rstrip('/')
 SITE_DESCRIPTION = os.getenv("SITE_DESCRIPTION", "AI-assisted blogging platform")
 SEO_DEFAULT_IMAGE = os.getenv("SEO_DEFAULT_IMAGE", "")
@@ -23,38 +21,17 @@ if debug_flag is not None:
 else:
     DEBUG = DJANGO_ENV not in {"production", "prod"}
 
-ALLOWED_HOSTS_ENV = os.getenv("DJANGO_ALLOWED_HOSTS")
-if ALLOWED_HOSTS_ENV:
-    ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(",") if host.strip()]
-else:
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
-    render_external_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
-    if render_external_hostname:
-        ALLOWED_HOSTS.append(render_external_hostname)
-    site_domain_host = SITE_DOMAIN.replace("https://", "").replace("http://", "").split("/")[0]
-    if site_domain_host:
-        ALLOWED_HOSTS.append(site_domain_host)
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    if host.strip()
+]
 
-render_external_url = os.getenv("RENDER_EXTERNAL_URL")
-if SITE_URL.startswith(("http://", "https://")):
-    site_origin = SITE_URL
-else:
-    site_origin = f"https://{SITE_URL}"
-csrf_env = [
+CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
     if origin.strip()
 ]
-csrf_origins = [render_external_url, site_origin, *csrf_env]
-CSRF_TRUSTED_ORIGINS = []
-for origin in csrf_origins:
-    if not origin:
-        continue
-    normalized = origin.rstrip("/")
-    if not normalized.startswith(("http://", "https://")):
-        normalized = f"https://{normalized.lstrip('/')}"
-    if normalized not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(normalized)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -106,18 +83,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "blogcraftai.wsgi.application"
 ASGI_APPLICATION = "blogcraftai.asgi.application"
 
-database_url = os.getenv("DATABASE_URL")
-conn_max_age = int(os.getenv("POSTGRES_CONN_MAX_AGE", "60"))
-if database_url:
-    ssl_require = os.getenv("DATABASE_SSL_REQUIRE", "true").lower() in {"1", "true", "yes"}
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=database_url,
-            conn_max_age=conn_max_age,
-            ssl_require=ssl_require,
-        )
-    }
-elif os.getenv("POSTGRES_DB"):
+if os.getenv("POSTGRES_DB"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -126,7 +92,7 @@ elif os.getenv("POSTGRES_DB"):
             "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
             "HOST": os.getenv("POSTGRES_HOST", "localhost"),
             "PORT": os.getenv("POSTGRES_PORT", "5432"),
-            "CONN_MAX_AGE": conn_max_age,
+            "CONN_MAX_AGE": int(os.getenv("POSTGRES_CONN_MAX_AGE", "60")),
         }
     }
 else:
@@ -152,8 +118,6 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-if not DEBUG:
-    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
@@ -190,9 +154,8 @@ LOGIN_URL = "accounts:login"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "true" if not DEBUG else "false").lower() in {"1", "true", "yes"}
-SESSION_COOKIE_SECURE = os.getenv("DJANGO_SESSION_COOKIE_SECURE", "true" if not DEBUG else "false").lower() in {"1", "true", "yes"}
-CSRF_COOKIE_SECURE = os.getenv("DJANGO_CSRF_COOKIE_SECURE", "true" if not DEBUG else "false").lower() in {"1", "true", "yes"}
+SESSION_COOKIE_SECURE = os.getenv("DJANGO_SESSION_COOKIE_SECURE", "False").lower() in {"1", "true", "yes"}
+CSRF_COOKIE_SECURE = os.getenv("DJANGO_CSRF_COOKIE_SECURE", "False").lower() in {"1", "true", "yes"}
 
 LOGGING = {
     "version": 1,
@@ -221,6 +184,5 @@ LOGGING = {
     },
 }
 
-AI_PROVIDER_URL = os.getenv("AI_PROVIDER_URL", "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyAtorpX3hHNDGEnKZqGa2eGiefEKl0kNSA")
+AI_PROVIDER_URL = os.getenv("AI_PROVIDER_URL", "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBTLQEULQ5A2J6oXOLgMc8ia4KE0zN4zww")
 AI_PROVIDER_TIMEOUT = float(os.getenv("AI_PROVIDER_TIMEOUT", "10"))
-
