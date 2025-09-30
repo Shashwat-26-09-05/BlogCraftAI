@@ -176,5 +176,3 @@ class AiSuggestionService:
             self._client.close()
         except Exception:  # pragma: no cover
             logger.debug("Failed to close AI client", exc_info=True)
-
-
